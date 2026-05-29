@@ -47,21 +47,50 @@ const Notifications = () => {
 
   const markRead = async (id) => {
     await API.post(`/notifications/${id}/read`);
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-  };
+
+    setNotifications(prev =>
+        prev.map(n =>
+        n.id === id
+            ? { ...n, is_read: true }
+            : n
+        )
+    );
+
+    window.dispatchEvent(
+        new Event("notificationsUpdated")
+    );
+    };
 
   const markAllRead = async () => {
     await API.post("/notifications/read-all");
-    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+
+    setNotifications(prev =>
+        prev.map(n => ({
+        ...n,
+        is_read: true
+        }))
+    );
+
+    window.dispatchEvent(
+        new Event("notificationsUpdated")
+    );
+
     toast.success("All marked as read");
-  };
+    };
 
   const clearAll = async () => {
     if (!window.confirm("Clear all notifications?")) return;
+
     await API.delete("/notifications/clear");
+
     setNotifications([]);
+
+    window.dispatchEvent(
+        new Event("notificationsUpdated")
+    );
+
     toast.success("Cleared");
-  };
+    };
 
   const unread = notifications.filter(n => !n.is_read).length;
 

@@ -6,19 +6,31 @@ const API = axios.create({
 
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+
   return config;
 });
 
 API.interceptors.response.use(
   (response) => response,
+
   (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+
+    // token expired / invalid / session dead
+    if (status === 401 || status === 400) {
+
       localStorage.removeItem("token");
-      window.location.href = "/login";
+
+      // prevent redirect loop
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
+
     return Promise.reject(error);
   }
 );

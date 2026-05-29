@@ -23,16 +23,37 @@ const Navbar = () => {
 
   useEffect(() => {
     if (!user) return;
-    API.get("/notifications/")
-      .then(res => setUnreadCount(res.data.unread_count))
-      .catch(() => {});
+
+    const fetchUnread = () => {
+      API.get("/notifications/")
+        .then(res =>
+          setUnreadCount(
+            res.data.unread_count
+          )
+        )
+        .catch(() => {});
+    };
+
+    fetchUnread();
+
+    window.addEventListener(
+      "notificationsUpdated",
+      fetchUnread
+    );
+
+    return () =>
+      window.removeEventListener(
+        "notificationsUpdated",
+        fetchUnread
+      );
+
   }, [user]);
 
-  const handleLogout = () => {
-    logoutUser();
-    navigate("/login");
-    setMobileOpen(false);
-  };
+    const handleLogout = () => {
+      logoutUser();
+      navigate("/login");
+      setMobileOpen(false);
+    };
 
   const close = () => setMobileOpen(false);
 
