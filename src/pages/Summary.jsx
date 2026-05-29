@@ -320,6 +320,8 @@ const DonutChart = ({ data, colors, total }) => {
   const cy = size / 2;
   const r = 58;
   const ir = 35;
+  const singleFullSlice =
+  data.length === 1 && total > 0;
 
   let cumAngle = -Math.PI / 2;
 
@@ -346,15 +348,26 @@ const DonutChart = ({ data, colors, total }) => {
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {slices.map((s, i) => (
-        <path
-          key={i}
-          d={s.d}
-          fill={s.color}
-          stroke={data.length === 1 ? "none" : "var(--bg-page)"}
-          strokeWidth={data.length === 1 ? 0 : 2}
+      {singleFullSlice ? (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={(r + ir) / 2}
+          fill="none"
+          stroke={colors[0]}
+          strokeWidth={r - ir}
         />
-      ))}
+      ) : (
+        slices.map((s, i) => (
+          <path
+            key={i}
+            d={s.d}
+            fill={s.color}
+            stroke="var(--bg-page)"
+            strokeWidth="2"
+          />
+        ))
+      )}
       <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700">
         ₹{total.toFixed(0)}
       </text>
