@@ -1,195 +1,361 @@
 import { useEffect, useState, useContext } from "react";
 import API from "../services/api";
-import {
-  PieChart, Pie, Cell, Tooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer
-} from "recharts";
 import { UserContext } from "../context/UserContext";
-import { TrendingUp, RefreshCw } from "lucide-react";
+import { RefreshCw, TrendingUp, TrendingDown, Wallet, Users, Target } from "lucide-react";
 import "../styles/Summary.css";
 
-const COLORS = ["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#ef4444", "#3b82f6", "#8b5cf6"];
+const CATEGORY_COLORS = [
+  "#38bdf8", "#22c55e", "#f59e0b", "#ef4444",
+  "#8b5cf6", "#ec4899", "#0ea5e9"
+];
+
+const CATEGORY_EMOJI = {
+  Food: "🍔", Transport: "🚗", Shopping: "🛍️",
+  Bills: "📋", Health: "💊", Entertainment: "🎬", Other: "📦"
+};
 
 const Summary = () => {
   const { token } = useContext(UserContext);
   const [summary, setSummary] = useState(null);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
 
-  const fetchSummary = async (isRefresh = false) => {
+  const fetchAll = async (isRefresh = false) => {
     try {
       isRefresh ? setRefreshing(true) : setLoading(true);
-
-      const [summaryRes, breakdownRes] = await Promise.all([
+      const [summaryRes, breakdownRes, statsRes] = await Promise.all([
         API.get("/expenses/summary/monthly"),
-        API.get("/expenses/breakdown/categories?days=30")
+        API.get("/expenses/breakdown/categories?days=30"),
+        API.get("/expenses/stats/overview"),
       ]);
-
       setSummary(summaryRes.data);
       setCategoryBreakdown(breakdownRes.data.breakdown || []);
-      setError("");
+      setStats(statsRes.data);
     } catch (err) {
-      setError("Failed to load analytics");
+      console.error(err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    if (token) fetchSummary();
-  }, [token]);
+  useEffect(() => { if (token) fetchAll(); }, [token]);
 
-  if (loading) return <div className="summary-page"><p>Loading analytics...</p></div>;
-  if (error) return (
+  if (loading) return (
     <div className="summary-page">
-      <p>{error}</p>
-      <button onClick={() => fetchSummary()}>Try Again</button>
+      <div className="summary-loading">
+        <div className="spinner" />
+        <span>Loading analytics...</span>
+      </div>
     </div>
   );
+
   if (!summary) return null;
 
-  const pieData = Object.entries(summary.by_category || {}).map(([name, value]) => ({
-    name,
-    value: parseFloat(value)
-  }));
-
-  const percentageUsed = summary.limit
-    ? Math.min(Math.round((summary.total_spent / summary.limit) * 100), 100)
+  const spentPct = summary.limit
+    ? Math.min(100, Math.round((summary.total_spent / summary.limit) * 100))
     : 0;
+
+  const topCategory = categoryBreakdown[0];
+  const totalCatSpend = categoryBreakdown.reduce((s, c) => s + c.total, 0);
+
+  const changePositive = stats?.change_percentage >= 0;
 
   return (
     <div className="summary-page">
-      <div className="summary-header">
+
+      {/* ===== PAGE HEADER ===== */}
+      <div className="summary-page-header">
         <div>
-          <h1>Expense Analytics</h1>
-          <p>{summary.month}</p>
+          <h2>Analytics</h2>
+          <p className="summary-month-label">{summary.month}</p>
         </div>
-        <div className="header-actions">
-          <TrendingUp size={32} />
-          <button
-            onClick={() => fetchSummary(true)}
-            disabled={refreshing}
-            className="refresh-btn"
-          >
-            <RefreshCw size={20} className={refreshing ? "spinning" : ""} />
-          </button>
-        </div>
+        <button
+          className="summary-refresh-btn"
+          onClick={() => fetchAll(true)}
+          disabled={refreshing}
+          title="Refresh"
+        >
+          <RefreshCw size={16} className={refreshing ? "spinning" : ""} />
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-box">
-          <span className="stat-label">Total Spent</span>
-          <span className="stat-value">₹{summary.total_spent.toFixed(2)}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Personal</span>
-          <span className="stat-value">₹{(summary.personal_spent || 0).toFixed(2)}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Group Share</span>
-          <span className="stat-value">₹{(summary.group_share || 0).toFixed(2)}</span>
-        </div>
-        <div className="stat-box">
-          <span className="stat-label">Monthly Limit</span>
-          <span className="stat-value">
-            {summary.limit ? `₹${summary.limit.toFixed(2)}` : "Not Set"}
-          </span>
-        </div>
-      </div>
-
-      {/* Budget progress */}
-      {summary.limit && (
-        <div className="progress-section">
-          <div className="progress-header">
-            <span>Budget Usage</span>
-            <span>{percentageUsed}%</span>
+      {/* ===== TOP STAT CARDS ===== */}
+      <div className="summary-stats-row">
+        <div className="summary-stat-card primary">
+          <div className="ssc-icon"><Wallet size={18} /></div>
+          <div className="ssc-body">
+            <span className="ssc-label">Total Spent</span>
+            <span className="ssc-value">₹{summary.total_spent.toFixed(2)}</span>
           </div>
-          <div className="progress-bar">
+        </div>
+        <div className="summary-stat-card">
+          <div className="ssc-icon green"><TrendingUp size={18} /></div>
+          <div className="ssc-body">
+            <span className="ssc-label">Personal</span>
+            <span className="ssc-value">₹{(summary.personal_spent || 0).toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="summary-stat-card">
+          <div className="ssc-icon purple"><Users size={18} /></div>
+          <div className="ssc-body">
+            <span className="ssc-label">Group Share</span>
+            <span className="ssc-value">₹{(summary.group_share || 0).toFixed(2)}</span>
+          </div>
+        </div>
+        <div className="summary-stat-card">
+          <div className="ssc-icon amber"><Target size={18} /></div>
+          <div className="ssc-body">
+            <span className="ssc-label">Monthly Limit</span>
+            <span className="ssc-value">
+              {summary.limit ? `₹${parseFloat(summary.limit).toFixed(0)}` : "Not set"}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== BUDGET PROGRESS ===== */}
+      {summary.limit && (
+        <div className="summary-budget-card">
+          <div className="summary-budget-top">
+            <div>
+              <span className="summary-budget-title">Budget</span>
+              <span className="summary-budget-sub">
+                ₹{summary.total_spent.toFixed(0)} of ₹{parseFloat(summary.limit).toFixed(0)}
+              </span>
+            </div>
+            <span className={`summary-budget-pct ${spentPct >= 90 ? "danger" : spentPct >= 70 ? "warning" : "good"}`}>
+              {spentPct}%
+            </span>
+          </div>
+          <div className="summary-budget-track">
             <div
-              className={`progress-fill ${
-                percentageUsed >= 100 ? "danger" : percentageUsed > 80 ? "warning" : "success"
-              }`}
-              style={{ width: `${percentageUsed}%` }}
+              className="summary-budget-fill"
+              style={{
+                width: `${spentPct}%`,
+                background: spentPct >= 90 ? "#ef4444" : spentPct >= 70 ? "#f59e0b" : "#22c55e"
+              }}
             />
           </div>
-          {summary.warning && <p className="warning-box">{summary.warning}</p>}
+          {summary.warning && (
+            <div className="summary-warning-msg">⚠ {summary.warning}</div>
+          )}
         </div>
       )}
 
-      {/* Charts */}
-      {pieData.length > 0 ? (
-        <div className="charts-grid">
-          <div className="chart-card">
-            <h3>Distribution</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={90} dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(v) => `₹${v.toFixed(2)}`} />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+      {/* ===== MAIN CONTENT GRID ===== */}
+      {categoryBreakdown.length > 0 ? (
+        <div className="summary-content-grid">
+
+          {/* LEFT — Category breakdown list (Splitwise style) */}
+          <div className="summary-panel">
+            <div className="summary-panel-header">
+              <h3>Category Breakdown</h3>
+              <span className="summary-panel-sub">{summary.month}</span>
+            </div>
+
+            {/* Donut chart built with SVG */}
+            <div className="summary-donut-wrap">
+              <DonutChart data={categoryBreakdown} colors={CATEGORY_COLORS} total={totalCatSpend} />
+            </div>
+
+            {/* Category list */}
+            <div className="summary-cat-list">
+              {categoryBreakdown.map((cat, i) => {
+                const pct = totalCatSpend > 0 ? ((cat.total / totalCatSpend) * 100).toFixed(1) : 0;
+                return (
+                  <div key={i} className="summary-cat-item">
+                    <div className="summary-cat-left">
+                      <div className="summary-cat-dot" style={{ background: CATEGORY_COLORS[i % CATEGORY_COLORS.length] }} />
+                      <span className="summary-cat-emoji">{CATEGORY_EMOJI[cat.category] || "📦"}</span>
+                      <span className="summary-cat-name">{cat.category}</span>
+                    </div>
+                    <div className="summary-cat-right">
+                      <span className="summary-cat-amt">₹{cat.total.toFixed(0)}</span>
+                      <span className="summary-cat-pct">{pct}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="chart-card">
-            <h3>By Category</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={pieData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip formatter={(v) => `₹${v.toFixed(2)}`} />
-                <Bar dataKey="value" fill="#6366f1" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* RIGHT — Stats + Bar chart */}
+          <div className="summary-right-col">
+
+            {/* Month comparison card */}
+            {stats && (
+              <div className="summary-panel summary-compare-card">
+                <div className="summary-panel-header">
+                  <h3>vs Last Month</h3>
+                </div>
+                <div className="summary-compare-row">
+                  <div className="summary-compare-item">
+                    <span className="summary-compare-label">This month</span>
+                    <span className="summary-compare-val primary">₹{stats.current_month_total.toFixed(0)}</span>
+                  </div>
+                  <div className="summary-compare-arrow">
+                    {changePositive
+                      ? <TrendingUp size={20} className="trend-up" />
+                      : <TrendingDown size={20} className="trend-down" />
+                    }
+                  </div>
+                  <div className="summary-compare-item right">
+                    <span className="summary-compare-label">Last month</span>
+                    <span className="summary-compare-val">₹{stats.last_month_total.toFixed(0)}</span>
+                  </div>
+                </div>
+                <div className={`summary-change-badge ${changePositive ? "up" : "down"}`}>
+                  {changePositive ? "▲" : "▼"} {Math.abs(stats.change_percentage).toFixed(1)}% vs last month
+                </div>
+                {stats.top_category && (
+                  <div className="summary-top-cat">
+                    Top: {CATEGORY_EMOJI[stats.top_category] || "📦"} {stats.top_category} — ₹{stats.top_category_amount.toFixed(0)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Horizontal bar chart */}
+            <div className="summary-panel">
+              <div className="summary-panel-header">
+                <h3>Spending by Category</h3>
+              </div>
+              <div className="summary-hbar-list">
+                {categoryBreakdown.map((cat, i) => {
+                  const pct = totalCatSpend > 0 ? (cat.total / totalCatSpend) * 100 : 0;
+                  return (
+                    <div key={i} className="summary-hbar-item">
+                      <div className="summary-hbar-label">
+                        <span>{CATEGORY_EMOJI[cat.category] || "📦"} {cat.category}</span>
+                        <span className="summary-hbar-amt">₹{cat.total.toFixed(0)}</span>
+                      </div>
+                      <div className="summary-hbar-track">
+                        <div
+                          className="summary-hbar-fill"
+                          style={{
+                            width: `${pct}%`,
+                            background: CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
       ) : (
         <div className="empty-state">
-          <p>No expenses this month. Start tracking to see analytics!</p>
+          <span style={{ fontSize: "2.5rem" }}>📊</span>
+          <h3>No expenses this month</h3>
+          <p>Start tracking expenses to see analytics here.</p>
         </div>
       )}
 
-      {/* Category table */}
+      {/* ===== CATEGORY TABLE ===== */}
       {categoryBreakdown.length > 0 && (
-        <div className="category-table-section">
-          <h2>Category Details</h2>
-          <table className="category-table">
+        <div className="summary-table-card">
+          <div className="summary-panel-header">
+            <h3>Detailed Breakdown</h3>
+            <span className="summary-panel-sub">{categoryBreakdown.length} categories</span>
+          </div>
+          <table>
             <thead>
               <tr>
                 <th>Category</th>
-                <th>Count</th>
+                <th>Transactions</th>
                 <th>Total</th>
                 <th>Average</th>
-                <th>% of Total</th>
+                <th>Share</th>
               </tr>
             </thead>
             <tbody>
               {categoryBreakdown.map((item, i) => (
                 <tr key={i}>
                   <td>
-                    <span className="category-dot" style={{ background: COLORS[i % COLORS.length] }} />
-                    {item.category}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{
+                        width: 10, height: 10, borderRadius: "50%",
+                        background: CATEGORY_COLORS[i % CATEGORY_COLORS.length],
+                        flexShrink: 0
+                      }} />
+                      <span>{CATEGORY_EMOJI[item.category] || "📦"} {item.category}</span>
+                    </div>
                   </td>
                   <td>{item.count}</td>
-                  <td>₹{item.total.toFixed(2)}</td>
+                  <td style={{ fontWeight: 700, color: "#0ea5e9" }}>₹{item.total.toFixed(2)}</td>
                   <td>₹{item.average.toFixed(2)}</td>
-                  <td>{item.percentage ?? ((item.total / summary.total_spent) * 100).toFixed(1)}%</td>
+                  <td>
+                    <div className="summary-share-bar-wrap">
+                      <div
+                        className="summary-share-bar"
+                        style={{
+                          width: `${item.percentage}%`,
+                          background: CATEGORY_COLORS[i % CATEGORY_COLORS.length]
+                        }}
+                      />
+                      <span>{item.percentage}%</span>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
     </div>
+  );
+};
+
+/* ===== DONUT CHART COMPONENT ===== */
+const DonutChart = ({ data, colors, total }) => {
+  const size = 160;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = 58;
+  const ir = 35;
+
+  let cumAngle = -Math.PI / 2;
+
+  const slices = data.map((d, i) => {
+    const frac = total > 0 ? d.total / total : 0;
+    const angle = frac * 2 * Math.PI;
+    const x1 = cx + r * Math.cos(cumAngle);
+    const y1 = cy + r * Math.sin(cumAngle);
+    cumAngle += angle;
+    const x2 = cx + r * Math.cos(cumAngle);
+    const y2 = cy + r * Math.sin(cumAngle);
+    const ix1 = cx + ir * Math.cos(cumAngle);
+    const iy1 = cy + ir * Math.sin(cumAngle);
+    const ix2 = cx + ir * Math.cos(cumAngle - angle);
+    const iy2 = cy + ir * Math.sin(cumAngle - angle);
+    const large = angle > Math.PI ? 1 : 0;
+
+    return {
+      d: `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${ir} ${ir} 0 ${large} 0 ${ix2} ${iy2} Z`,
+      color: colors[i % colors.length],
+      label: d.category
+    };
+  });
+
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      {slices.map((s, i) => (
+        <path key={i} d={s.d} fill={s.color} stroke="var(--bg-page)" strokeWidth="2" />
+      ))}
+      <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700">
+        ₹{total.toFixed(0)}
+      </text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fill="var(--text-muted)" fontSize="10">
+        total
+      </text>
+    </svg>
   );
 };
 

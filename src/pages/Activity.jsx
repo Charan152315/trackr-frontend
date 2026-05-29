@@ -12,6 +12,7 @@ import "../styles/Activity.css";
 
 const ACTION_ICON = {
   add_expense: <DollarSign size={15} />,
+  update_expense:    <DollarSign size={15} />,
   delete_expense: <DollarSign size={15} />,
   add_member: <Users size={15} />,
   remove_member: <Users size={15} />,
@@ -23,6 +24,7 @@ const ACTION_ICON = {
 
 const ACTION_COLOR = {
   add_expense: "#0ea5e9",
+  update_expense: "#8b5cf6",
   delete_expense: "#ef4444",
   add_member: "#22c55e",
   remove_member: "#f59e0b",
