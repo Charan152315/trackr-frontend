@@ -347,7 +347,13 @@ const DonutChart = ({ data, colors, total }) => {
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       {slices.map((s, i) => (
-        <path key={i} d={s.d} fill={s.color} stroke="var(--bg-page)" strokeWidth="2" />
+        <path
+          key={i}
+          d={s.d}
+          fill={s.color}
+          stroke={data.length === 1 ? "none" : "var(--bg-page)"}
+          strokeWidth={data.length === 1 ? 0 : 2}
+        />
       ))}
       <text x={cx} y={cy - 6} textAnchor="middle" fill="var(--text-primary)" fontSize="13" fontWeight="700">
         ₹{total.toFixed(0)}
