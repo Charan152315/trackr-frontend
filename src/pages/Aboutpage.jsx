@@ -40,12 +40,9 @@ function About() {
             <Link to="/register" className="btn btn-primary">
               Get Started <ArrowRight size={16} />
             </Link>
-            <a
-              href="https://github.com/Charan152315/trackr-backend"
-              target="_blank"
-              rel="noreferrer"
-              className="btn btn-outline about-github-btn"
-            ></a>
+            <a href="https://github.com/Charan152315/trackr-backend" target="_blank" rel="noreferrer" className="btn btn-outline about-github-btn">
+              <Github size={15} /> View on GitHub
+            </a>
           </div>
         </div>
       </section>
