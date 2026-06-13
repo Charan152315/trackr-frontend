@@ -40,9 +40,12 @@ function About() {
             <Link to="/register" className="btn btn-primary">
               Get Started <ArrowRight size={16} />
             </Link>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="btn btn-outline about-github-btn">
-              <Github size={15} /> View on GitHub
-            </a>
+            <a
+              href="https://github.com/Charan152315/trackr-backend"
+              target="_blank"
+              rel="noreferrer"
+              className="btn btn-outline about-github-btn"
+            ></a>
           </div>
         </div>
       </section>
@@ -109,7 +112,8 @@ function About() {
                 <span>SQLAlchemy ORM</span>
                 <span>Alembic Migrations</span>
                 <span>JWT + Argon2</span>
-                <span>SMTP Email</span>
+                <span>Resend Email API</span>
+                <span>Redis Cache</span>
               </div>
             </div>
             <div className="arch-arrow">→</div>
