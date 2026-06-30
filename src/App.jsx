@@ -16,6 +16,7 @@ import Notifications from "./pages/Notifications";
 import ActivityPage from "./pages/Activity";
 import Export from "./pages/Export";
 import SettingsPage from "./pages/Settings";
+import JoinGroup from "./pages/JoinGroup";
 
 function App() {
   return (
@@ -40,7 +41,7 @@ function App() {
           <Route path="/activity" element={<ProtectedRoute><ActivityPage /></ProtectedRoute>} />
           <Route path="/export" element={<ProtectedRoute><Export /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-
+          <Route path="/join/:code" element={<ProtectedRoute><JoinGroup /></ProtectedRoute>} />
           {/* 404 */}
           <Route path="*" element={<NotFound />} />
         </Routes>

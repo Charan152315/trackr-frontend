@@ -27,7 +27,9 @@ const Login = () => {
       localStorage.setItem("token", response.data.access_token);
       setToken(response.data.access_token);
       toast.success("Welcome back!");
-      navigate("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      navigate(redirect || "/dashboard");
     } catch (err) {
       toast.error("Invalid credentials. Please try again.");
     } finally {

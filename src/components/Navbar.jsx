@@ -22,32 +22,14 @@ const Navbar = () => {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    if (!user) return;
-
-    const fetchUnread = () => {
-      API.get("/notifications/")
-        .then(res =>
-          setUnreadCount(
-            res.data.unread_count
-          )
-        )
-        .catch(() => {});
-    };
-
-    fetchUnread();
-
-    window.addEventListener(
-      "notificationsUpdated",
-      fetchUnread
-    );
-
-    return () =>
-      window.removeEventListener(
-        "notificationsUpdated",
-        fetchUnread
-      );
-
-  }, [user]);
+      if (!user) return;
+      Promise.all([
+        API.get("/notifications/"),
+        API.get("/groups/invite-requests/pending"),
+      ]).then(([notifRes, inviteRes]) => {
+        setUnreadCount(notifRes.data.unread_count + inviteRes.data.length);
+      }).catch(() => {});
+    }, [user]);
 
     const handleLogout = () => {
       logoutUser();

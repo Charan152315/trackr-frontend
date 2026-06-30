@@ -41,8 +41,10 @@ const Register = () => {
         password: formData.password,
         monthly_limit: parseFloat(formData.monthly_limit) || 0
       });
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
       toast.success("Account created! Please sign in.");
-      navigate("/login");
+      navigate(redirect ? `/login?redirect=${redirect}` : "/login");
     } catch (err) {
       toast.error(err.response?.data?.detail || "Registration failed");
     } finally {
